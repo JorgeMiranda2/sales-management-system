@@ -6,24 +6,24 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SalesSystemApp.Data;
+using SalesSystemApp.Interfaces;
 using SalesSystemApp.Models;
 
 namespace SalesSystemApp.Controllers
 {
     public class SaleController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly ISaleService _saleService;
 
-        public SaleController(AppDbContext context)
+        public SaleController(ISaleService saleService)
         {
-            _context = context;
+            _saleService = saleService;
         }
 
         // GET: Sale
         public async Task<IActionResult> Index()
         {
-            var appDbContext = _context.Sales.Include(s => s.User);
-            return View(await appDbContext.ToListAsync());
+            return View(await _saleService.GetSalesAsync());
         }
 
         // GET: Sale/Details/5
@@ -34,9 +34,7 @@ namespace SalesSystemApp.Controllers
                 return NotFound();
             }
 
-            var sale = await _context.Sales
-                .Include(s => s.User)
-                .FirstOrDefaultAsync(m => m.SaleId == id);
+            var sale = await _saleService.GetSaleByIdAsync(id.Value);
             if (sale == null)
             {
                 return NotFound();
@@ -46,26 +44,32 @@ namespace SalesSystemApp.Controllers
         }
 
         // GET: Sale/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["UserId"] = new SelectList(_context.Users, "UserId", "Email");
+            ViewData["UserId"] = new SelectList(await _saleService.GetUsersAsync(), "UserId", "Email");
             return View();
         }
 
         // POST: Sale/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("SaleId,UserId,SaleDate,TotalBeforeTax,TotalAfterTax")] Sale sale)
         {
+
+            foreach (var modelState in ViewData.ModelState.Values)
+            {
+                foreach (var error in modelState.Errors)
+                {
+                    Console.Out.WriteLine(error.ErrorMessage);
+                }
+            }
+
             if (ModelState.IsValid)
             {
-                _context.Add(sale);
-                await _context.SaveChangesAsync();
+                await _saleService.CreateSaleAsync(sale);
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["UserId"] = new SelectList(_context.Users, "UserId", "Email", sale.UserId);
+            ViewData["UserId"] = new SelectList(await _saleService.GetUsersAsync(), "UserId", "Email", sale.UserId);
             return View(sale);
         }
 
@@ -77,18 +81,16 @@ namespace SalesSystemApp.Controllers
                 return NotFound();
             }
 
-            var sale = await _context.Sales.FindAsync(id);
+            var sale = await _saleService.GetSaleByIdAsync(id.Value);
             if (sale == null)
             {
                 return NotFound();
             }
-            ViewData["UserId"] = new SelectList(_context.Users, "UserId", "Email", sale.UserId);
+            ViewData["UserId"] = new SelectList(await _saleService.GetUsersAsync(), "UserId", "Email", sale.UserId);
             return View(sale);
         }
 
         // POST: Sale/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("SaleId,UserId,SaleDate,TotalBeforeTax,TotalAfterTax")] Sale sale)
@@ -102,12 +104,11 @@ namespace SalesSystemApp.Controllers
             {
                 try
                 {
-                    _context.Update(sale);
-                    await _context.SaveChangesAsync();
+                    await _saleService.UpdateSaleAsync(sale);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!SaleExists(sale.SaleId))
+                    if (!_saleService.SaleExists(sale.SaleId))
                     {
                         return NotFound();
                     }
@@ -118,7 +119,7 @@ namespace SalesSystemApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["UserId"] = new SelectList(_context.Users, "UserId", "Email", sale.UserId);
+            ViewData["UserId"] = new SelectList(await _saleService.GetUsersAsync(), "UserId", "Email", sale.UserId);
             return View(sale);
         }
 
@@ -130,9 +131,7 @@ namespace SalesSystemApp.Controllers
                 return NotFound();
             }
 
-            var sale = await _context.Sales
-                .Include(s => s.User)
-                .FirstOrDefaultAsync(m => m.SaleId == id);
+            var sale = await _saleService.GetSaleByIdAsync(id.Value);
             if (sale == null)
             {
                 return NotFound();
@@ -146,19 +145,11 @@ namespace SalesSystemApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var sale = await _context.Sales.FindAsync(id);
-            if (sale != null)
-            {
-                _context.Sales.Remove(sale);
-            }
-
-            await _context.SaveChangesAsync();
+            await _saleService.DeleteSaleAsync(id);
             return RedirectToAction(nameof(Index));
         }
-
-        private bool SaleExists(int id)
-        {
-            return _context.Sales.Any(e => e.SaleId == id);
-        }
     }
+
+
+
 }

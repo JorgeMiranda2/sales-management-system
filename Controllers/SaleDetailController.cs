@@ -6,24 +6,25 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SalesSystemApp.Data;
+using SalesSystemApp.Interfaces;
 using SalesSystemApp.Models;
 
 namespace SalesSystemApp.Controllers
 {
     public class SaleDetailController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly ISaleDetailService _saleDetailService;
 
-        public SaleDetailController(AppDbContext context)
+        public SaleDetailController(ISaleDetailService saleDetailService)
         {
-            _context = context;
+            _saleDetailService = saleDetailService;
         }
 
         // GET: SaleDetail
         public async Task<IActionResult> Index()
         {
-            var appDbContext = _context.SaleDetails.Include(s => s.Product).Include(s => s.Sale);
-            return View(await appDbContext.ToListAsync());
+            var saleDetails = await _saleDetailService.GetSaleDetailsAsync();
+            return View(saleDetails);
         }
 
         // GET: SaleDetail/Details/5
@@ -34,10 +35,7 @@ namespace SalesSystemApp.Controllers
                 return NotFound();
             }
 
-            var saleDetail = await _context.SaleDetails
-                .Include(s => s.Product)
-                .Include(s => s.Sale)
-                .FirstOrDefaultAsync(m => m.SaleDetailId == id);
+            var saleDetail = await _saleDetailService.GetSaleDetailByIdAsync(id.Value);
             if (saleDetail == null)
             {
                 return NotFound();
@@ -47,28 +45,33 @@ namespace SalesSystemApp.Controllers
         }
 
         // GET: SaleDetail/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["ProductId"] = new SelectList(_context.Products, "ProductId", "Description");
-            ViewData["SaleId"] = new SelectList(_context.Sales, "SaleId", "SaleId");
+            ViewData["ProductId"] = new SelectList(await _saleDetailService.GetProductsAsync(), "ProductId", "Description");
+            ViewData["SaleId"] = new SelectList(await _saleDetailService.GetSalesAsync(), "SaleId", "SaleId");
             return View();
         }
 
         // POST: SaleDetail/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("SaleDetailId,SaleId,ProductId,Quantity,Price")] SaleDetail saleDetail)
         {
+            foreach (var modelState in ViewData.ModelState.Values)
+            {
+                foreach (var error in modelState.Errors)
+                {
+                    Console.Out.WriteLine(error.ErrorMessage);
+                }
+            }
+
             if (ModelState.IsValid)
             {
-                _context.Add(saleDetail);
-                await _context.SaveChangesAsync();
+                await _saleDetailService.CreateSaleDetailAsync(saleDetail);
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ProductId"] = new SelectList(_context.Products, "ProductId", "Description", saleDetail.ProductId);
-            ViewData["SaleId"] = new SelectList(_context.Sales, "SaleId", "SaleId", saleDetail.SaleId);
+            ViewData["ProductId"] = new SelectList(await _saleDetailService.GetProductsAsync(), "ProductId", "Description", saleDetail.ProductId);
+            ViewData["SaleId"] = new SelectList(await _saleDetailService.GetSalesAsync(), "SaleId", "SaleId", saleDetail.SaleId);
             return View(saleDetail);
         }
 
@@ -80,19 +83,17 @@ namespace SalesSystemApp.Controllers
                 return NotFound();
             }
 
-            var saleDetail = await _context.SaleDetails.FindAsync(id);
+            var saleDetail = await _saleDetailService.GetSaleDetailByIdAsync(id.Value);
             if (saleDetail == null)
             {
                 return NotFound();
             }
-            ViewData["ProductId"] = new SelectList(_context.Products, "ProductId", "Description", saleDetail.ProductId);
-            ViewData["SaleId"] = new SelectList(_context.Sales, "SaleId", "SaleId", saleDetail.SaleId);
+            ViewData["ProductId"] = new SelectList(await _saleDetailService.GetProductsAsync(), "ProductId", "Description", saleDetail.ProductId);
+            ViewData["SaleId"] = new SelectList(await _saleDetailService.GetSalesAsync(), "SaleId", "SaleId", saleDetail.SaleId);
             return View(saleDetail);
         }
 
         // POST: SaleDetail/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("SaleDetailId,SaleId,ProductId,Quantity,Price")] SaleDetail saleDetail)
@@ -106,12 +107,11 @@ namespace SalesSystemApp.Controllers
             {
                 try
                 {
-                    _context.Update(saleDetail);
-                    await _context.SaveChangesAsync();
+                    await _saleDetailService.UpdateSaleDetailAsync(saleDetail);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!SaleDetailExists(saleDetail.SaleDetailId))
+                    if (!_saleDetailService.SaleDetailExists(saleDetail.SaleDetailId))
                     {
                         return NotFound();
                     }
@@ -122,8 +122,8 @@ namespace SalesSystemApp.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["ProductId"] = new SelectList(_context.Products, "ProductId", "Description", saleDetail.ProductId);
-            ViewData["SaleId"] = new SelectList(_context.Sales, "SaleId", "SaleId", saleDetail.SaleId);
+            ViewData["ProductId"] = new SelectList(await _saleDetailService.GetProductsAsync(), "ProductId", "Description", saleDetail.ProductId);
+            ViewData["SaleId"] = new SelectList(await _saleDetailService.GetSalesAsync(), "SaleId", "SaleId", saleDetail.SaleId);
             return View(saleDetail);
         }
 
@@ -135,10 +135,7 @@ namespace SalesSystemApp.Controllers
                 return NotFound();
             }
 
-            var saleDetail = await _context.SaleDetails
-                .Include(s => s.Product)
-                .Include(s => s.Sale)
-                .FirstOrDefaultAsync(m => m.SaleDetailId == id);
+            var saleDetail = await _saleDetailService.GetSaleDetailByIdAsync(id.Value);
             if (saleDetail == null)
             {
                 return NotFound();
@@ -152,19 +149,8 @@ namespace SalesSystemApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var saleDetail = await _context.SaleDetails.FindAsync(id);
-            if (saleDetail != null)
-            {
-                _context.SaleDetails.Remove(saleDetail);
-            }
-
-            await _context.SaveChangesAsync();
+            await _saleDetailService.DeleteSaleDetailAsync(id);
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool SaleDetailExists(int id)
-        {
-            return _context.SaleDetails.Any(e => e.SaleDetailId == id);
         }
     }
 }

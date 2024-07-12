@@ -7,22 +7,23 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SalesSystemApp.Data;
 using SalesSystemApp.Models;
+using SalesSystemApp.Services;
+using SalesSystemApp.Interfaces;
 
 namespace SalesSystemApp.Controllers
-{
-    public class UserController : Controller
+{  public class UserController : Controller
     {
-        private readonly AppDbContext _context;
+        private readonly IUserService _userService;
 
-        public UserController(AppDbContext context)
+        public UserController(IUserService userService)
         {
-            _context = context;
+            _userService = userService;
         }
 
         // GET: User
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Users.ToListAsync());
+            return View(await _userService.GetAllUsersAsync());
         }
 
         // GET: User/Details/5
@@ -33,8 +34,7 @@ namespace SalesSystemApp.Controllers
                 return NotFound();
             }
 
-            var user = await _context.Users
-                .FirstOrDefaultAsync(m => m.UserId == id);
+            var user = await _userService.GetUserByIdAsync(id.Value);
             if (user == null)
             {
                 return NotFound();
@@ -50,29 +50,13 @@ namespace SalesSystemApp.Controllers
         }
 
         // POST: User/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("UserId,Name,Email,Password,BirthDate,Phone")] User user)
+        public async Task<IActionResult> Create([Bind("Name,Email,Password,BirthDate,Phone")] User user)
         {
-
-            Console.Out.WriteLine("creating...");
-
-            foreach (var modelState in ViewData.ModelState.Values)
-            {
-                foreach (var error in modelState.Errors)
-                {
-                    Console.Out.WriteLine(error.ErrorMessage);
-                }
-            }
-
-
             if (ModelState.IsValid)
             {
-                Console.Out.WriteLine("work...");
-                _context.Add(user);
-                await _context.SaveChangesAsync();
+                await _userService.AddUserAsync(user);
                 return RedirectToAction(nameof(Index));
             }
             return View(user);
@@ -86,7 +70,7 @@ namespace SalesSystemApp.Controllers
                 return NotFound();
             }
 
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userService.GetUserByIdAsync(id.Value);
             if (user == null)
             {
                 return NotFound();
@@ -95,8 +79,6 @@ namespace SalesSystemApp.Controllers
         }
 
         // POST: User/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("UserId,Name,Email,Password,BirthDate,Phone")] User user)
@@ -110,12 +92,11 @@ namespace SalesSystemApp.Controllers
             {
                 try
                 {
-                    _context.Update(user);
-                    await _context.SaveChangesAsync();
+                    await _userService.UpdateUserAsync(user);
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!UserExists(user.UserId))
+                    if (!_userService.UserExists(user.UserId))
                     {
                         return NotFound();
                     }
@@ -137,8 +118,7 @@ namespace SalesSystemApp.Controllers
                 return NotFound();
             }
 
-            var user = await _context.Users
-                .FirstOrDefaultAsync(m => m.UserId == id);
+            var user = await _userService.GetUserByIdAsync(id.Value);
             if (user == null)
             {
                 return NotFound();
@@ -152,19 +132,8 @@ namespace SalesSystemApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var user = await _context.Users.FindAsync(id);
-            if (user != null)
-            {
-                _context.Users.Remove(user);
-            }
-
-            await _context.SaveChangesAsync();
+            await _userService.DeleteUserAsync(id);
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool UserExists(int id)
-        {
-            return _context.Users.Any(e => e.UserId == id);
         }
     }
 }
