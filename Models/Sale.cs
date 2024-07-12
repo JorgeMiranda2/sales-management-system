@@ -16,6 +16,6 @@ namespace SalesSystemApp.Models
         public decimal TotalAfterTax { get; set; }
 
         public User User { get; set; }
-        public ICollection<SaleDetail> SaleDetails { get; set; }
+        public ICollection<SaleDetail> SaleDetails { get; set; } = new List<SaleDetail>();
     }
 }

@@ -19,6 +19,6 @@ namespace SalesSystemApp.Models
         [MaxLength(500)]
         public string Description { get; set; } // Nueva descripción
 
-        public ICollection<SaleDetail> SaleDetails { get; set; }
+        public ICollection<SaleDetail> SaleDetails { get; set; } = new List<SaleDetail>();
     }
 }
