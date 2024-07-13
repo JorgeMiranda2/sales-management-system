@@ -1,0 +1,128 @@
+﻿@model SalesSystemApp.ViewModels.BuyingViewModel
+
+<h2>Product Catalog</h2>
+
+<form asp-action="CreateNewSale" method="post" class="container mt-4">
+    <div class="form-group row mb-4">
+        <label for="UserEmail" class="col-sm-2 col-form-label">Email</label>
+        <div class="col-sm-10">
+            <input type="email" name="UserEmail" class="form-control" required />
+            <span asp-validation-for="UserEmail" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="row">
+        @foreach (var product in Model.Products)
+        {
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">@product.Name</h5>
+                        <p class="card-text">@product.Description</p>
+                        <p class="card-text">Price: $@product.Price</p>
+                        <input type="number" id="quantity-@product.ProductId" class="form-control" min="0" placeholder="Quantity" value="0" />
+                        <button type="button" class="btn btn-primary mt-2" onclick="addToCart(@product.ProductId, '@product.Name', @product.Price)">Add to Cart</button>
+                    </div>
+                    <div class="card-footer">
+                        <p>Quantity: <span id="quantity-display-@product.ProductId">0</span></p>
+                        <p>Total: $<span id="total-display-@product.ProductId">0.00</span></p>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <h3 class="mt-4">Cart</h3>
+    <table class="table table-striped">
+        <thead class="thead-dark">
+            <tr>
+                <th>Product</th>
+                <th>Price</th>
+                <th>Quantity</th>
+                <th>Total</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="cart">
+        </tbody>
+    </table>
+
+    <div id="hidden-fields-container"></div>
+
+    <button type="submit" class="btn btn-success mt-4">Create Sale</button>
+</form>
+
+
+@section Scripts {
+    <script>
+        let cart = []; // Cart array 
+
+        // Function to add a product to the cart
+        function addToCart(productId, productName, productPrice) {
+            const quantity = parseInt(document.getElementById(`quantity-${productId}`).value); // Get the quantity input by the user
+            if (quantity > 0) { // Proceed only if the quantity is greater than 0
+                const existingProduct = cart.find(p => p.ProductId === productId); // Check if the product is already in the cart
+                if (existingProduct) {
+                    existingProduct.Quantity += quantity; // If it is, update the quantity
+                } else {
+                    cart.push({ // If it isn't, add the new product to the cart
+                        ProductId: productId,
+                        Name: productName,
+                        Price: productPrice,
+                        Quantity: quantity
+                    });
+                }
+                updateQuantityAndTotal(productId); // Update the displayed quantity and total for the product
+                renderCart(); // Rerender the cart 
+                updateProductsInput(); // Update the hidden input fields for form submission
+            }
+        }
+
+        // Function to update the displayed quantity and total for a specific product
+        function updateQuantityAndTotal(productId) {
+            const product = cart.find(p => p.ProductId === productId); // Find the product in the cart
+            if (product) {
+                document.getElementById(`quantity-display-${productId}`).textContent = product.Quantity; // Update the displayed quantity
+                document.getElementById(`total-display-${productId}`).textContent = (product.Quantity * product.Price).toFixed(2); // Update the displayed total
+            }
+        }
+
+        // Function to render the cart table
+        function renderCart() {
+            const cartTable = document.getElementById('cart'); // Get the cart table element
+            cartTable.innerHTML = ''; // Clear the cart table
+            cart.forEach(product => { // Iterate over each product in the cart
+                const row = document.createElement('tr'); // Create a new table row
+                row.innerHTML = `
+                                    <td>${product.Name}</td>
+                                    <td>$${product.Price}</td>
+                                    <td>${product.Quantity}</td>
+                                    <td>$${(product.Quantity * product.Price).toFixed(2)}</td>
+                                    <td><button type="button" class="btn btn-danger btn-sm" onclick="removeFromCart(${product.ProductId})">Remove</button></td>
+                                `; 
+                cartTable.appendChild(row); // Append the row to the cart table
+            });
+        }
+
+        // Function to update the hidden input fields for form submission
+        function updateProductsInput() {
+            const hiddenFieldsContainer = document.getElementById('hidden-fields-container'); // Get the container for hidden fields
+            hiddenFieldsContainer.innerHTML = ''; // Clear the container
+            cart.forEach((product, index) => { // Iterate over each product in the cart
+                hiddenFieldsContainer.innerHTML += `
+                                    <input type="hidden" name="ProductsInput[${index}].ProductId" value="${product.ProductId}" />
+                                    <input type="hidden" name="ProductsInput[${index}].Quantity" value="${product.Quantity}" />
+                                `; // Add hidden input fields for each product's ID and quantity
+            });
+        }
+
+        // Function to remove a product from the cart
+        function removeFromCart(productId) {
+            cart = cart.filter(p => p.ProductId !== productId); // Filter out the product from the cart
+            renderCart(); // Render the cart to show the updated list of products
+            updateProductsInput(); // Update the hidden input fields for form submission
+        }
+    </script>
+}
+
+

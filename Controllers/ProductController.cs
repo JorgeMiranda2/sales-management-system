@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SalesSystemApp.Data;
+using SalesSystemApp.ViewModels;
 using SalesSystemApp.Interfaces;
 using SalesSystemApp.Models;
 
@@ -19,6 +20,9 @@ namespace SalesSystemApp.Controllers
         {
             _productService = productService;
         }
+
+
+
 
         // GET: Product
         public async Task<IActionResult> Index()

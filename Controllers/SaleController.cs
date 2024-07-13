@@ -8,23 +8,54 @@ using Microsoft.EntityFrameworkCore;
 using SalesSystemApp.Data;
 using SalesSystemApp.Interfaces;
 using SalesSystemApp.Models;
+using SalesSystemApp.Services;
+using SalesSystemApp.ViewModels;
+using SalesSystemApp.ViewModels;
 
 namespace SalesSystemApp.Controllers
 {
     public class SaleController : Controller
     {
         private readonly ISaleService _saleService;
+        private readonly IProductService _productService;
+        private readonly AppDbContext _context;
 
-        public SaleController(ISaleService saleService)
+        public SaleController(ISaleService saleService, IProductService productService, AppDbContext context)
         {
             _saleService = saleService;
+            _productService = productService;
+            _context = context;
         }
+
+
+        public async Task<IActionResult> Cart()
+        {
+            var products = await _productService.GetProductsAsync();
+            var productViewModels = products.Select(p => new BuyingViewModel.ProductViewModel
+            {
+                ProductId = p.ProductId,
+                Name = p.Name,
+                Price = p.Price,
+                Description = p.Description
+            }).ToList();
+
+            var model = new BuyingViewModel
+            {
+                Products = productViewModels,
+                UserEmail = "" 
+            };
+
+            return View(model);
+        }
+
 
         // GET: Sale
         public async Task<IActionResult> Index()
         {
             return View(await _saleService.GetSalesAsync());
         }
+
+   
 
         // GET: Sale/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -140,6 +171,37 @@ namespace SalesSystemApp.Controllers
             return View(sale);
         }
 
+        [HttpPost]
+        public async Task<IActionResult> CreateNewSale(BuyingViewModel model)
+        {
+          
+            foreach (var productInput in model.ProductsInput)
+            {
+                Console.WriteLine($"ProductId: {productInput.ProductId}, Quantity: {productInput.Quantity}");
+            }
+
+
+
+
+            if (!ModelState.IsValid)
+            {
+                Console.Out.WriteLine("invalid type");
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                await _saleService.CreateNewSaleAsync(model);
+                return RedirectToAction("Index", "Home"); ;
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            } 
+
+        }
+
+
         // POST: Sale/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
@@ -148,8 +210,32 @@ namespace SalesSystemApp.Controllers
             await _saleService.DeleteSaleAsync(id);
             return RedirectToAction(nameof(Index));
         }
+
+        [HttpGet]
+        public IActionResult SearchSalesByEmail(string userEmail)
+        {
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return View(new SearchSalesViewModel());
+            }
+
+            var sales = _saleService.GetSalesByUserEmail(userEmail);
+            var viewModel = new SearchSalesViewModel
+            {
+                UserEmail = userEmail,
+                Sales = sales
+            };
+
+            return View(viewModel);
+        }
+
+
+
     }
 
-
-
 }
+
+   
+
+
+

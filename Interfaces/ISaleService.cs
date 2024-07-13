@@ -1,4 +1,6 @@
-﻿using SalesSystemApp.Models;
+﻿using SalesSystemApp.ViewModels;
+using SalesSystemApp.Models;
+using SalesSystemApp.ViewModels;
 
 namespace SalesSystemApp.Interfaces
 {
@@ -11,5 +13,8 @@ namespace SalesSystemApp.Interfaces
         Task DeleteSaleAsync(int id);
         bool SaleExists(int id);
         Task<List<User>> GetUsersAsync();
+
+        Task CreateNewSaleAsync(BuyingViewModel viewModel);
+        List<SaleDto> GetSalesByUserEmail(string userEmail);
     }
 }

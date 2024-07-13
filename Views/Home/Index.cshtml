@@ -1,8 +1,24 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Inicio";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container mt-5">
+    <div class="jumbotron">
+        <h1 class="display-4">Bienvenido a SalesSystemApp</h1>
+        <p class="lead">Este es un proyecto para comprar productos y vincularlos a una factura de un usuario, agregando un valor de IVA.</p>
+        <hr class="my-4">
+        <p>Con esta aplicación, puedes gestionar usuarios, productos, ventas y los detalles de cada venta de manera eficiente y organizada.</p>
+        <a class="btn btn-primary btn-lg" asp-area="" asp-controller="Sale" asp-action="Cart" role="button">Empezar a Comprar</a>
+    </div>
+</div>
+
+<div class="container mt-5">
+    <h2>Características</h2>
+    <ul class="list-group">
+        <li class="list-group-item">Gestión de Usuarios</li>
+        <li class="list-group-item">Gestión de Productos</li>
+        <li class="list-group-item">Gestión de Ventas</li>
+        <li class="list-group-item">Gestión de Detalles de Ventas</li>
+        <li class="list-group-item">Cálculo automático del total con IVA</li>
+    </ul>
 </div>
